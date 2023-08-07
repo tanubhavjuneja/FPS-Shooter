@@ -1,7 +1,6 @@
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 from ursina.shaders import lit_with_shadows_shader
-from ursina.prefabs.health_bar import HealthBar
 app = Ursina()
 random.seed(0)
 Entity.default_shader = lit_with_shadows_shader
@@ -35,13 +34,28 @@ gun.muzzle_flash = Entity(parent=gun, z=1, world_scale=.5, model='quad', color=c
 shootables_parent = Entity()
 mouse.traverse_target = shootables_parent
 no_of_shots=0
+class HealthBar(Entity):
+    def __init__(self, value=100, position=(0, -0.495), scale=(1.8, 0.01), color=color.rgb(255, 0, 0)):
+        super().__init__(
+            parent=camera.ui,
+            model='quad',
+            texture='white_cube',
+            color=color,
+            position=position,
+            scale=scale
+        )
+        self.value = value
+        self.original_scale_x = scale[0]
+    def update_value(self, new_value):
+        self.value = new_value
+        self.scale_x = max(0, min(self.value / 100, 1)) * self.original_scale_x
+player_health = 100
+health_bar = HealthBar(value=player_health, position=(0, -0.495), scale=(1.8, 0.01))
 def spawn_enemies(number_of_enemies):
     for _ in range(number_of_enemies):
         Enemy(x=random.uniform(-8, 8), z=random.uniform(-8, 8) + 8)
-def quit_game():
-    application.quit()
 def update():
-    global shooting
+    global shooting,player_health
     if not shooting and held_keys['left mouse']:
         shooting = True
         shoot()
@@ -49,9 +63,10 @@ def update():
         shooting = False
     if held_keys['escape']:
         quit_game()
+    health_bar.update_value(player_health)
     update_zombies_killed_text()
 def shoot():
-    global no_of_shots
+    global no_of_shots,player_health
     if shooting and not gun.on_cooldown:
         gun.on_cooldown = True
         gun.muzzle_flash.enabled = True
@@ -69,10 +84,47 @@ def shoot():
                     spawn_enemies(2)
                 else:
                     spawn_enemies(1)
+                if Enemy.enemies_destroyed % 5 == 0:
+                    player_health += 20 
+                    if player_health > 100:
+                        player_health = 100
+                    health_bar.value = player_health
+class Bullet(Entity):
+    instances = [] 
+    def __init__(self, position, direction):
+        super().__init__(
+            model='sphere',
+            color=color.orange,
+            scale=0.1,
+            position=position,
+        )
+        self.direction = direction.normalized()
+        self.speed = 10
+        self.max_distance = 30
+        self.initial_distance = (self.position - player.position).length()
+        Bullet.instances.append(self)  
+    def update(self):
+        self.position += self.direction * self.speed * time.dt
+        current_distance = (self.position - player.position).length()
+        if current_distance - self.initial_distance > self.max_distance:
+            self.destroy() 
+    def destroy(self):
+        self.remove_from_instances() 
+        destroy(self) 
+    @classmethod
+    def remove_from_instances(cls):
+        if cls in Bullet.instances:
+            Bullet.instances.remove(cls)
+    @classmethod
+    def destroy_all(cls):
+        for bullet in cls.instances[:]: 
+            bullet.destroy()
 class Enemy(Entity):
     enemies_destroyed = 0
+    enemy_instances=[]
     def __init__(self, **kwargs):
         super().__init__(parent=shootables_parent, model='cube', scale_y=2, origin_y=-.5, color=color.green, collider='box', **kwargs)
+        Enemy.enemy_instances.append(self)  
         self.max_hp = 10
         self.hp = self.max_hp
         self.speed = 10
@@ -93,6 +145,17 @@ class Enemy(Entity):
             distance_to_player = (self.position - player.position).length()
             if distance_to_player >= min_distance_from_player:
                 break
+    def shoot_at_player(self):
+        global player_health
+        hit_info = raycast(self.world_position + Vec3(0, 1, 0), self.forward, 120, ignore=(self,))
+        bullet = Bullet(position=self.world_position + Vec3(0, 1, 0), direction=self.forward)
+        if hit_info.entity == player:
+            player_health -= 1
+            health_bar.value = player_health
+            if player_health <= 0:
+                player_health = 0
+                print("yes")
+                end_game_screen()
     def update(self):
         distance_to_player = (self.position - player.position).length()
         min_distance = 15
@@ -114,6 +177,8 @@ class Enemy(Entity):
         if hit_info.entity == player:
             if dist > 2:
                 self.position += self.forward * time.dt * 5
+        if random.random() < 0.01:  
+            self.shoot_at_player()
     @property
     def hp(self):
         return self._hp
@@ -123,6 +188,17 @@ class Enemy(Entity):
         if value <= 0:
             destroy(self)
             return
+    def destroy(self):
+        self.remove_from_instances() 
+        destroy(self) 
+    @classmethod
+    def remove_from_instances(cls1):
+        if cls1 in Enemy.enemy_instances:
+            Enemy.enemy_instances.remove(cls1)
+    @classmethod
+    def destroy_all(cls):
+        for enemy in cls.enemy_instances[:]: 
+            enemy.destroy()
 enemies = [Enemy(x=x * 4) for x in range(4)]
 def pause_input(key):
     if key == 'tab':
@@ -140,6 +216,47 @@ accuracy_text = Text(text='Accuracy: 100%', position=(-0.85, 0.35), origin=(-0.5
 def update_zombies_killed_text():
     zombies_killed_text.text = f'Zombies Killed: {Enemy.enemies_destroyed}'
     if no_of_shots!=0:
-        accuracy=Enemy.enemies_destroyed/no_of_shots*100//1
+        accuracy=((Enemy.enemies_destroyed*10000)//no_of_shots)/100
         accuracy_text.text = f'Accuracy: {accuracy}%'
+def end_game_screen():
+    global end_game_text,score_text,replay_button,quit_button,accurac_text
+    player.enabled = False
+    for enemy in enemies:
+        enemy.enabled=False
+    gun.enabled = False
+    health_bar.enabled = False
+    zombies_killed_text.enabled = False
+    accuracy_text.enabled = False
+    accuracy = 0
+    if no_of_shots != 0:
+        accuracy = ((Enemy.enemies_destroyed * 10000) // no_of_shots) / 100
+    end_game_text = Text(text='Game Over', scale=6, y=0.4,x=-0.4)
+    score_text = Text(text=f'Final Score: {Enemy.enemies_destroyed}', scale=3, y=0.2,x=-0.2)
+    accurac_text = Text(text=f'Accuracy: {accuracy}%', scale=3, y=0.1,x=-0.2)
+    replay_button = Button(text='Replay', scale=(0.3, 0.2), y=-0.25, x=-0.3, on_click=replay_game)
+    quit_button = Button(text='Quit', scale=(0.3, 0.2), y=-0.25, x=0.3, on_click=quit_game)
+def quit_game():
+    application.quit()
+def replay_game():
+    global no_of_shots, player_health
+    Bullet.destroy_all()
+    Enemy.destroy_all()
+    no_of_shots = 0
+    player_health = 100
+    health_bar.update_value(player_health)
+    for enemy in enemies:
+        destroy(enemy)
+    enemies.clear()
+    Enemy.enemies_destroyed = 0
+    player.enabled = True
+    gun.enabled = True
+    health_bar.enabled = True
+    zombies_killed_text.enabled = True
+    accuracy_text.enabled = True
+    spawn_enemies(4) 
+    destroy(end_game_text)
+    destroy(score_text)
+    destroy(accurac_text)
+    destroy(replay_button)
+    destroy(quit_button)
 app.run()
