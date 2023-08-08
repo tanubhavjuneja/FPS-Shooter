@@ -28,34 +28,20 @@ def home():
             intensity = average_intensity if (abs(x) < map_size / 2 and abs(z) < map_size / 2) else 10
             light = PointLight(color=color.rgb(255, 255, 255), intensity=intensity, range=20)
             light_entity = Entity(light=light, position=(x, 10, z))
-    def easy_game():
+    def start_game(str):
         global difficulty
         destroy(home_screen_text)
         destroy(start_button1)
         destroy(start_button2)
         destroy(start_button3)
-        difficulty='Easy'
-        false_start()
-    def medium_game():
-        global difficulty
-        destroy(home_screen_text)
-        destroy(start_button1)
-        destroy(start_button2)
-        destroy(start_button3)
-        difficulty='Medium'
-        false_start()
-    def hard_game():
-        global difficulty
-        destroy(home_screen_text)
-        destroy(start_button1)
-        destroy(start_button2)
-        destroy(start_button3)
-        difficulty='Hard'
+        destroy(quit_button)
+        difficulty=str
         false_start()
     home_screen_text = Text(text='Start Game', scale=6, y=0.3,x=-0.4)
-    start_button1 = Button(text='Easy', scale=(0.3, 0.1), y=-0.2,x=-0.5, on_click=easy_game)
-    start_button2 = Button(text='Medium', scale=(0.3, 0.1), y=-0.2, x=0,on_click=medium_game)
-    start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.2,x=0.5, on_click=hard_game)
+    start_button1 = Button(text='Easy', scale=(0.3, 0.1), y=-0.1,x=-0.5, on_click=lambda:start_game('Easy'))
+    start_button2 = Button(text='Medium', scale=(0.3, 0.1), y=-0.1, x=0,on_click=lambda:start_game('Medium'))
+    start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.1,x=0.5, on_click=lambda:start_game('Hard'))
+    quit_button = Button(text='Quit', scale=(0.3, 0.1), y=-0.3, x=0, on_click=quit_game)
 def false_start():
     global min_speed,max_speed,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
     if difficulty=='Easy':
@@ -90,7 +76,7 @@ def false_start():
     enemies = [Enemy(x=x * sten) for x in range(4)]
     pause_handler = Entity(ignore_paused=True, input=pause_input)
     shooting = False
-    zombies_killed_text = Text(text='Zombies Killed: 000', position=(-0.85, 0.45), origin=(-0.5, 0.5), background=True, background_color=(0, 0, 0, 0.5))
+    zombies_killed_text = Text(text='Kills: 000', position=(-0.85, 0.45), origin=(-0.5, 0.5), background=True, background_color=(0, 0, 0, 0.5))
     accuracy_text = Text(text='Accuracy: 100%', position=(-0.85, 0.35), origin=(-0.5, 0.5), background=True, background_color=(0, 0, 0, 0.5))
     game_started=True
 class HealthBar(Entity):
@@ -264,12 +250,12 @@ def pause_input(key):
         editor_camera.position = player.position
         application.paused = editor_camera.enabled
 def update_zombies_killed_text():
-    zombies_killed_text.text = f'Zombies Killed: {Enemy.enemies_destroyed}'
+    zombies_killed_text.text = f'Kills: {Enemy.enemies_destroyed}'
     if no_of_shots!=0:
         accuracy=((Enemy.enemies_destroyed*10000)//no_of_shots)/100
         accuracy_text.text = f'Accuracy: {accuracy}%'
 def end_game_screen():
-    global end_game_text,score_text,replay_button,quit_button,accurac_text
+    global end_game_text,score_text,start_button1,start_button2,start_button3,quit_button,accurac_text
     player.enabled = False
     for enemy in enemies:
         enemy.enabled=False
@@ -281,14 +267,34 @@ def end_game_screen():
     if no_of_shots != 0:
         accuracy = ((Enemy.enemies_destroyed * 10000) // no_of_shots) / 100
     end_game_text = Text(text='Game Over', scale=6, y=0.4,x=-0.4)
-    score_text = Text(text=f'Zombies Killed: {Enemy.enemies_destroyed}', scale=3, y=0.2,x=-0.2)
-    accurac_text = Text(text=f'Accuracy: {accuracy}%', scale=3, y=0.1,x=-0.2)
-    replay_button = Button(text='Replay', scale=(0.3, 0.2), y=-0.25, x=-0.3, on_click=replay_game)
-    quit_button = Button(text='Quit', scale=(0.3, 0.2), y=-0.25, x=0.3, on_click=quit_game)
+    score_text = Text(text=f'Kills: {Enemy.enemies_destroyed}', scale=3, y=0.2,x=-0.3)
+    accurac_text = Text(text=f'Accuracy: {accuracy}%', scale=3, y=0.1,x=-0.3)
+    start_button1 = Button(text='Easy', scale=(0.3, 0.1), y=-0.15,x=-0.5, on_click=lambda:replay_game('Easy'))
+    start_button2 = Button(text='Medium', scale=(0.3, 0.1), y=-0.15, x=0,on_click=lambda:replay_game('Medium'))
+    start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.15,x=0.5, on_click=lambda:replay_game('Hard'))
+    quit_button = Button(text='Quit', scale=(0.3, 0.1), y=-0.35, on_click=quit_game)
 def quit_game():
     application.quit()
-def replay_game():
-    global no_of_shots, player_health,sten
+def replay_game(difficulty):
+    global no_of_shots, player_health,sten,maxen,hp_gain,min_speed,max_speed
+    if difficulty=='Easy':
+        sten=5
+        maxen=10
+        hp_gain=10
+        min_speed=8
+        max_speed=20
+    elif difficulty=='Medium':
+        sten=6
+        maxen=14
+        hp_gain=6
+        min_speed=10
+        max_speed=25
+    elif difficulty=='Hard':
+        sten=7
+        maxen=18
+        hp_gain=2
+        min_speed=12
+        max_speed=30
     Bullet.destroy_all()
     Enemy.destroy_all()
     no_of_shots = 0
@@ -307,7 +313,9 @@ def replay_game():
     destroy(end_game_text)
     destroy(score_text)
     destroy(accurac_text)
-    destroy(replay_button)
+    destroy(start_button1)
+    destroy(start_button2)
+    destroy(start_button3)
     destroy(quit_button)
 home()
 app.run()
