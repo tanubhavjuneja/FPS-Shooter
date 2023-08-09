@@ -47,19 +47,19 @@ def false_start():
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=10
+        hp_gain=40
         min_speed=8
         max_speed=20
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=6
+        hp_gain=30
         min_speed=10
         max_speed=25
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=2
+        hp_gain=20
         min_speed=12
         max_speed=30
     editor_camera = EditorCamera(enabled=False, ignore_paused=True)
@@ -128,10 +128,11 @@ def shoot():
                     spawn_enemies(2)
                 else:
                     spawn_enemies(1)
-                player_health += hp_gain 
-                if player_health > player_hp:
-                    player_health = player_hp
-                health_bar.value = player_health
+                if Enemy.enemies_destroyed%5==0:
+                    player_health += hp_gain 
+                    if player_health > player_hp:
+                        player_health = player_hp
+                    health_bar.value = player_health
 class Bullet(Entity):
     instances = [] 
     def __init__(self, position, direction):
@@ -280,19 +281,19 @@ def replay_game(difficulty):
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=10
+        hp_gain=40
         min_speed=8
         max_speed=20
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=6
+        hp_gain=30
         min_speed=10
         max_speed=25
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=2
+        hp_gain=20
         min_speed=12
         max_speed=30
     Bullet.destroy_all()
