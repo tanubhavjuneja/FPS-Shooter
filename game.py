@@ -1,11 +1,44 @@
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 from ursina.shaders import lit_with_shadows_shader
+from panda3d.core import Filename
+import customtkinter as ctk
+import tkfilebrowser
 app = Ursina()
 window.fullscreen = True
 Entity.default_shader = lit_with_shadows_shader
 game_started = False
+def read_file_location():
+    global mfl
+    try:
+        file=open('file_location.txt', 'r')
+        mfl = file.read().strip()
+        file.close()
+        if not os.path.isfile(os.path.join(mfl, 'M4A1.3ds')) or not os.path.isfile(os.path.join(mfl, 'mech.3DS')):
+            get_file_location()
+    except FileNotFoundError:
+        get_file_location()
+def get_file_location():
+    global main
+    main=ctk.CTk()
+    main.geometry("200x50+860+420")
+    main.attributes('-topmost', True)
+    main.attributes("-alpha",100.0)
+    main.lift()
+    file_button = ctk.CTkButton(main, text="Select File Location",command=select_file_location,width=1)
+    file_button.pack(pady=10)
+    main.mainloop()
+def select_file_location():
+    global main
+    mfl = str(tkfilebrowser.askopendirname())+"/"
+    mfl = mfl.replace('\\', '/')
+    file=open('file_location.txt', 'w')
+    file.write(mfl)
+    file.close()
+    main.destroy()
+    read_file_location()
 def home():
+    read_file_location()
     ground = Entity(model='plane', collider='box', scale=(64, 1, 64), texture='grass', texture_scale=(8, 8))
     roof = Entity(model='cube', scale=(64, 1, 64), position=(0, 11, 0), texture="brick", collider='box')
     left_wall = Entity(model='cube', scale=(1, 18, 64), position=(-32, 2, 0), texture="brick", collider='box')
@@ -43,30 +76,33 @@ def home():
     start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.1,x=0.5, on_click=lambda:start_game('Hard'))
     quit_button = Button(text='Quit', scale=(0.3, 0.1), y=-0.3, x=0, on_click=quit_game)
 def false_start():
-    global min_speed,max_speed,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
+    global mfl,min_speed,max_speed,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=40
+        hp_gain=30
         min_speed=8
         max_speed=20
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=30
+        hp_gain=20
         min_speed=10
         max_speed=25
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=20
+        hp_gain=10
         min_speed=12
         max_speed=30
     editor_camera = EditorCamera(enabled=False, ignore_paused=True)
     player = FirstPersonController(model='cube', z=-10, color=color.orange, origin_y=-.5, speed=8, collider='box')
     player.collider = BoxCollider(player, Vec3(0, 1, 0), Vec3(1, 2, 1))
-    gun = Entity(model="cube", parent=camera, position=(.5, -0.25, .25), scale=(.3, .2, 1), origin_z=-.5, color=color.red, on_cooldown=False)
-    gun.muzzle_flash = Entity(parent=gun, z=1, world_scale=.5, model='quad', color=color.yellow, enabled=False)
+    gun_model_path = mfl+"M4A1.3ds" 
+    panda3d_gun_model = loader.loadModel(Filename.fromOsSpecific(gun_model_path))
+    gun = Entity(model=panda3d_gun_model, parent=camera, position=(0.75, -0.9, 0.5), scale=(2, 2, 2), origin_z=-.1, on_cooldown=False)
+    gun.rotation+=Vec3(10,260,350)
+    gun.color = color.black
     shootables_parent = Entity()
     mouse.traverse_target = shootables_parent
     player_health=100
@@ -113,10 +149,8 @@ def shoot():
     global no_of_shots,player_health,maxen,player_hp
     if shooting and not gun.on_cooldown:
         gun.on_cooldown = True
-        gun.muzzle_flash.enabled = True
         from ursina.prefabs.ursfx import ursfx
         ursfx([(0.0, 0.0), (0.1, 0.9), (0.15, 0.75), (0.3, 0.14), (0.6, 0.0)], volume=0.5, wave='noise', pitch=random.uniform(-13, -12), pitch_change=-12, speed=3.0)
-        invoke(gun.muzzle_flash.disable, delay=.05)
         invoke(setattr, gun, 'on_cooldown', False, delay=.15)
         no_of_shots+=1
         if mouse.hovered_entity and hasattr(mouse.hovered_entity, 'hp'):
@@ -167,16 +201,17 @@ class Enemy(Entity):
     enemies_destroyed = 0
     enemy_instances=[]
     def __init__(self, **kwargs):
-        super().__init__(parent=shootables_parent, model='cube', scale_y=2, origin_y=-.5, color=color.green, collider='box', **kwargs)
+        panda3d_enemy_model = loader.loadModel(Filename.fromOsSpecific(mfl+"mech.3DS"))
+        super().__init__(parent=shootables_parent, model=panda3d_enemy_model, scale=(0.012,0.012,0.012), origin_y=-20, color=color.gray, collider='box', **kwargs)
         Enemy.enemy_instances.append(self)  
         self.max_hp = 10
         self.hp = self.max_hp
-        self.speed = 10
+        self.speed = 100
         map_width = 64 
         map_length = 64 
         wall = random.choice(['top', 'bottom', 'left', 'right'])
-        offset = 2
-        min_distance_from_player = 30
+        offset = 10
+        min_distance_from_player = 10
         while True:
             if wall == 'top':
                 self.position = Vec3(random.uniform(-map_width/2+offset, map_width/2-offset), 0, 32 - offset)
@@ -192,7 +227,7 @@ class Enemy(Entity):
     def shoot_at_player(self):
         global player_health
         hit_info = raycast(self.world_position + Vec3(0, 1, 0), self.forward, 120, ignore=(self,))
-        bullet = Bullet(position=self.world_position + Vec3(0, 1, 0), direction=self.forward)
+        bullet = Bullet(position=self.world_position + Vec3(0, 1.8, 0), direction=self.forward)
         if hit_info.entity == player:
             player_health -= 1
             health_bar.value = player_health
@@ -281,19 +316,19 @@ def replay_game(difficulty):
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=40
+        hp_gain=30
         min_speed=8
         max_speed=20
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=30
+        hp_gain=20
         min_speed=10
         max_speed=25
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=20
+        hp_gain=10
         min_speed=12
         max_speed=30
     Bullet.destroy_all()
