@@ -14,7 +14,7 @@ def read_file_location():
         file=open('file_location.txt', 'r')
         mfl = file.read().strip()
         file.close()
-        if not os.path.isfile(os.path.join(mfl, 'M4A1.3ds')) or not os.path.isfile(os.path.join(mfl, 'mech.3DS')):
+        if not os.path.isfile(os.path.join(mfl, 'Railgun.3ds')) or not os.path.isfile(os.path.join(mfl, 'iron man.obj')) or not os.path.isfile(os.path.join(mfl, 'jet.obj')):
             get_file_location()
     except FileNotFoundError:
         get_file_location()
@@ -39,12 +39,17 @@ def select_file_location():
     read_file_location()
 def home():
     read_file_location()
-    ground = Entity(model='plane', collider='box', scale=(64, 1, 64), texture='grass', texture_scale=(8, 8))
-    roof = Entity(model='cube', scale=(64, 1, 64), position=(0, 11, 0), texture="brick", collider='box')
-    left_wall = Entity(model='cube', scale=(1, 18, 64), position=(-32, 2, 0), texture="brick", collider='box')
-    right_wall = Entity(model='cube', scale=(1, 18, 64), position=(32, 2, 0), texture="brick", collider='box')
-    front_wall = Entity(model='cube', scale=(64, 18, 1), position=(0, 2, 32), texture="brick", collider='box')
-    back_wall = Entity(model='cube', scale=(64, 18, 1), position=(0, 2, -32), texture="brick", collider='box')
+    map_model_path = mfl + "t3qqxibgic-CenterCitySciFi/Center city Sci-Fi/Center City Sci-Fi.obj"
+    panda3d_map_model = loader.loadModel(Filename.fromOsSpecific(map_model_path))
+    map_entity = Entity(model=panda3d_map_model,position=(0,-700,0), scale=(1, 1, 1),collider="box") 
+    map_width = 574.478
+    map_height = 972.816
+    map_depth = 893.135
+    boundary_thickness = 10
+    left_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(-map_width / 2 - boundary_thickness / 2-150, -400, -250), visible=False)
+    right_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(map_width / 2 + boundary_thickness / 2-170, -400, -250), visible=False)
+    front_wall = Entity(model='cube', scale=(map_width,1000, boundary_thickness), collider='box', position=(-150, -400, map_depth / 2 + boundary_thickness / 2-250), visible=False)
+    back_wall = Entity(model='cube', scale=(map_width, 1000, boundary_thickness), collider='box', position=(-150, -400, -map_depth / 2 - boundary_thickness / 2-220), visible=False)
     ambient_light = AmbientLight(color=color.rgb(100, 100, 100))
     ambient_light_entity = Entity(light=ambient_light)
     window.fullscreen = True
@@ -76,38 +81,34 @@ def home():
     start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.1,x=0.5, on_click=lambda:start_game('Hard'))
     quit_button = Button(text='Quit', scale=(0.3, 0.1), y=-0.3, x=0, on_click=quit_game)
 def false_start():
-    global mfl,min_speed,max_speed,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
+    global mfl,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=30
-        min_speed=8
-        max_speed=20
+        hp_gain=60
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=20
-        min_speed=10
-        max_speed=25
+        hp_gain=40
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=10
-        min_speed=12
-        max_speed=30
+        hp_gain=20
     editor_camera = EditorCamera(enabled=False, ignore_paused=True)
-    player = FirstPersonController(model='cube', z=-10, color=color.orange, origin_y=-.5, speed=8, collider='box')
+    panda3d_player_model = loader.loadModel(Filename.fromOsSpecific(mfl+"iron man.obj"))
+    player = FirstPersonController(model=panda3d_player_model, z=-10,color=color.gold, origin_y=0, speed=80, collider='box')
     player.collider = BoxCollider(player, Vec3(0, 1, 0), Vec3(1, 2, 1))
-    gun_model_path = mfl+"M4A1.3ds" 
+    player.cursor.scale = 0.005
+    gun_model_path = mfl+"Railgun.3ds" 
     panda3d_gun_model = loader.loadModel(Filename.fromOsSpecific(gun_model_path))
     gun = Entity(model=panda3d_gun_model, parent=camera, position=(0.75, -0.9, 0.5), scale=(2, 2, 2), origin_z=-.1, on_cooldown=False)
     gun.rotation+=Vec3(10,260,350)
     gun.color = color.black
     shootables_parent = Entity()
     mouse.traverse_target = shootables_parent
-    player_health=100
-    player_hp=100
-    no_of_shots=0
+    player_health=200
+    player_hp=200
+    no_of_shots=-1
     health_bar = HealthBar(value=player_health, position=(0, -0.495), scale=(1.8, 0.01))
     enemies = [Enemy(x=x * sten) for x in range(4)]
     pause_handler = Entity(ignore_paused=True, input=pause_input)
@@ -116,7 +117,7 @@ def false_start():
     accuracy_text = Text(text='Accuracy: 100%', position=(-0.85, 0.35), origin=(-0.5, 0.5), background=True, background_color=(0, 0, 0, 0.5))
     game_started=True
 class HealthBar(Entity):
-    def __init__(self, value=100, position=(0, -0.495), scale=(1.8, 0.01), color=color.rgb(255, 0, 0)):
+    def __init__(self, value=1000, position=(0, -0.495), scale=(1.8, 0.01), color=color.rgb(255, 0, 0)):
         super().__init__(
             parent=camera.ui,
             model='quad',
@@ -129,7 +130,7 @@ class HealthBar(Entity):
         self.original_scale_x = scale[0]
     def update_value(self, new_value):
         self.value = new_value
-        self.scale_x = max(0, min(self.value / 100, 1)) * self.original_scale_x
+        self.scale_x = max(0, min(self.value / 200, 1)) * self.original_scale_x
 def spawn_enemies(number_of_enemies):
     for _ in range(number_of_enemies):
         Enemy(x=random.uniform(-8, 8), z=random.uniform(-8, 8) + 8)
@@ -171,13 +172,13 @@ class Bullet(Entity):
     instances = [] 
     def __init__(self, position, direction):
         super().__init__(
-            model='sphere',
-            color=color.orange,
-            scale=0.1,
+            model="sphere",
+            color=color.gray,
+            scale=1,
             position=position,
         )
         self.direction = direction.normalized()
-        self.speed = 10
+        self.speed = 100
         self.max_distance = 30
         self.initial_distance = (self.position - player.position).length()
         Bullet.instances.append(self)  
@@ -201,33 +202,34 @@ class Enemy(Entity):
     enemies_destroyed = 0
     enemy_instances=[]
     def __init__(self, **kwargs):
-        panda3d_enemy_model = loader.loadModel(Filename.fromOsSpecific(mfl+"mech.3DS"))
-        super().__init__(parent=shootables_parent, model=panda3d_enemy_model, scale=(0.012,0.012,0.012), origin_y=-20, color=color.gray, collider='box', **kwargs)
+        panda3d_enemy_model = loader.loadModel(Filename.fromOsSpecific(mfl+"jet.obj"))
+        panda3d_enemy_model.setHpr(90,90,0)
+        super().__init__(parent=shootables_parent, model=panda3d_enemy_model, scale=(0.2,0.2,0.2), origin_y=1750, color=color.gray, collider='box', **kwargs)
         Enemy.enemy_instances.append(self)  
         self.max_hp = 10
         self.hp = self.max_hp
         self.speed = 100
-        map_width = 64 
-        map_length = 64 
-        wall = random.choice(['top', 'bottom', 'left', 'right'])
-        offset = 10
-        min_distance_from_player = 10
+        map_width = 574.478
+        map_length = 893.135
+        wall = random.choice(['left','right','front','back'])
+        offset = -100
+        min_distance_from_player = 200
         while True:
-            if wall == 'top':
-                self.position = Vec3(random.uniform(-map_width/2+offset, map_width/2-offset), 0, 32 - offset)
-            elif wall == 'bottom':
-                self.position = Vec3(random.uniform(-map_width/2+offset, map_width/2-offset), 0, -32 + offset)
+            if wall == 'front':
+                self.position = Vec3(random.uniform(-map_width/2 + offset-100, map_width/2 - offset-300), 0, map_length / 2 - offset-350)
+            elif wall == 'back':
+                self.position = Vec3(random.uniform(-map_width/2 + offset-100, map_width/2 - offset-300), 0, -map_length / 2 + offset)
             elif wall == 'left':
-                self.position = Vec3(-32 + offset, 0, random.uniform(-map_length/2+offset, map_length/2-offset))
+                self.position = Vec3(-map_width / 2 + offset, 0, random.uniform(-map_length / 2 + offset-100, map_length / 2 - offset-400))
             elif wall == 'right':
-                self.position = Vec3(32 - offset, 0, random.uniform(-map_length/2+offset, map_length/2-offset))
+                self.position = Vec3(map_width / 2 - offset-300, 0, random.uniform(-map_length / 2 + offset-100, map_length / 2 - offset-400))
             distance_to_player = (self.position - player.position).length()
             if distance_to_player >= min_distance_from_player:
                 break
     def shoot_at_player(self):
         global player_health
-        hit_info = raycast(self.world_position + Vec3(0, 1, 0), self.forward, 120, ignore=(self,))
-        bullet = Bullet(position=self.world_position + Vec3(0, 1.8, 0), direction=self.forward)
+        hit_info = raycast(player.position + Vec3(0, 1, 0), self.forward, 1200, ignore=(self,))
+        bullet = Bullet(position=self.world_position + Vec3(0, -350, 0), direction=self.forward)
         if hit_info.entity == player:
             player_health -= 1
             health_bar.value = player_health
@@ -235,22 +237,11 @@ class Enemy(Entity):
                 player_health = 0
                 end_game_screen()
     def update(self):
-        global min_speed, max_speed
-        distance_to_player = (self.position - player.position).length()
-        min_distance = 15
-        max_distance = 50
-        if distance_to_player < min_distance:
-            speed_adjustment = 1.0
-        elif distance_to_player > max_distance:
-            speed_adjustment = max_speed / self.speed
-        else:
-            speed_adjustment = (max_speed - min_speed) / (max_distance - min_distance) * (distance_to_player - min_distance) + min_speed / self.speed
-        self.speed *= speed_adjustment
         dist = distance_xz(player.position, self.position)
-        if dist > 120:
+        if dist > 1200:
             return
         self.look_at_2d(player.position, 'y')
-        hit_info = raycast(self.world_position + Vec3(0,1,0), self.forward, 120, ignore=(self,))
+        hit_info = raycast(self.world_position + Vec3(0,1,0), self.forward, 1200, ignore=(self,))
         if hit_info.entity == player:
             if dist > 2:
                 self.position += self.forward * time.dt * 5
@@ -312,25 +303,19 @@ def end_game_screen():
 def quit_game():
     application.quit()
 def replay_game(difficulty):
-    global no_of_shots, player_health,sten,maxen,hp_gain,min_speed,max_speed
+    global no_of_shots, player_health,sten,maxen,hp_gain
     if difficulty=='Easy':
         sten=5
         maxen=10
-        hp_gain=30
-        min_speed=8
-        max_speed=20
+        hp_gain=80
     elif difficulty=='Medium':
         sten=6
         maxen=14
-        hp_gain=20
-        min_speed=10
-        max_speed=25
+        hp_gain=60
     elif difficulty=='Hard':
         sten=7
         maxen=18
-        hp_gain=10
-        min_speed=12
-        max_speed=30
+        hp_gain=40
     Bullet.destroy_all()
     Enemy.destroy_all()
     no_of_shots = 0
