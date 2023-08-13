@@ -5,6 +5,8 @@ from panda3d.core import Filename
 from math import atan2, degrees, sqrt
 import customtkinter as ctk
 import tkfilebrowser
+import pygame.mixer
+pygame.mixer.init()
 app = Ursina()
 window.fullscreen = True
 Entity.default_shader = lit_with_shadows_shader
@@ -15,10 +17,11 @@ def read_file_location():
         file=open('file_location.txt', 'r')
         mfl = file.read().strip()
         file.close()
-        if not os.path.isfile(os.path.join(mfl, 'Railgun.3ds')) or not os.path.isfile(os.path.join(mfl, 'iron man.obj')) or not os.path.isfile(os.path.join(mfl, 'jet.obj')):
+        if not os.path.isfile(os.path.join(mfl, 'iron man.obj')) or not os.path.isfile(os.path.join(mfl, 'jet.obj')) or not os.path.isfile(os.path.join(mfl, 'repulsor.mp3')):
             get_file_location()
     except FileNotFoundError:
         get_file_location()
+    home()
 def get_file_location():
     global main
     main=ctk.CTk()
@@ -39,7 +42,6 @@ def select_file_location():
     main.destroy()
     read_file_location()
 def home():
-    read_file_location()
     map_model_path = mfl + "t3qqxibgic-CenterCitySciFi/Center city Sci-Fi/Center City Sci-Fi.obj"
     panda3d_map_model = loader.loadModel(Filename.fromOsSpecific(map_model_path))
     map_entity = Entity(model=panda3d_map_model,position=(0,-700,0), scale=(1, 1, 1),collider="box") 
@@ -82,7 +84,7 @@ def home():
     start_button3 = Button(text='Hard', scale=(0.3, 0.1), y=-0.1,x=0.5, on_click=lambda:start_game('Hard'))
     quit_button = Button(text='Quit', scale=(0.3, 0.1), y=-0.3, x=0, on_click=quit_game)
 def false_start():
-    global mfl,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
+    global shot_sound,mfl,difficulty,editor_camera,no_of_shots,health_bar,player_health,player_hp,enemies,pause_handler,shooting,zombies_killed_text,accuracy_text,gun,player,shootables_parent,sten,game_started,maxen,hp_gain
     if difficulty=='Easy':
         sten=5
         maxen=10
@@ -95,6 +97,7 @@ def false_start():
         sten=7
         maxen=18
         hp_gain=20
+    shot_sound = pygame.mixer.Sound(mfl+'repulsor.mp3')
     editor_camera = EditorCamera(enabled=False, ignore_paused=True)
     panda3d_player_model = loader.loadModel(Filename.fromOsSpecific(mfl+"iron man.obj"))
     player = FirstPersonController(model=panda3d_player_model, z=-10,color=color.dark_gray, origin=(0,-2,1), speed=80, collider='box')
@@ -146,6 +149,7 @@ def update():
 def shoot():
     global no_of_shots, player_health, maxen, player_hp
     if shooting and not gun.on_cooldown:
+        shot_sound.play()
         gun.on_cooldown = True
         if mouse.world_point:
             direction = (mouse.world_point - player.position).normalized()
@@ -350,5 +354,5 @@ def replay_game(difficulty):
     destroy(start_button2)
     destroy(start_button3)
     destroy(quit_button)
-home()
+read_file_location()
 app.run()
