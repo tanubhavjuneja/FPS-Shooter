@@ -46,10 +46,10 @@ def home():
     map_height = 972.816
     map_depth = 893.135
     boundary_thickness = 10
-    left_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(-map_width / 2 - boundary_thickness / 2-150, -400, -250), visible=False)
-    right_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(map_width / 2 + boundary_thickness / 2-170, -400, -250), visible=False)
-    front_wall = Entity(model='cube', scale=(map_width,1000, boundary_thickness), collider='box', position=(-150, -400, map_depth / 2 + boundary_thickness / 2-250), visible=False)
-    back_wall = Entity(model='cube', scale=(map_width, 1000, boundary_thickness), collider='box', position=(-150, -400, -map_depth / 2 - boundary_thickness / 2-220), visible=False)
+    left_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(-map_width / 2 - boundary_thickness / 2-140, -400, -250), visible=False)
+    right_wall = Entity(model='cube', scale=(boundary_thickness, 1000, map_depth), collider='box', position=(map_width / 2 + boundary_thickness / 2-160, -400, -250), visible=False)
+    front_wall = Entity(model='cube', scale=(map_width,1000, boundary_thickness), collider='box', position=(-150, -400, map_depth / 2 + boundary_thickness / 2-260), visible=False)
+    back_wall = Entity(model='cube', scale=(map_width, 1000, boundary_thickness), collider='box', position=(-150, -400, -map_depth / 2 - boundary_thickness / 2-200), visible=False)
     ambient_light = AmbientLight(color=color.rgb(100, 100, 100))
     ambient_light_entity = Entity(light=ambient_light)
     window.fullscreen = True
@@ -96,7 +96,7 @@ def false_start():
         hp_gain=20
     editor_camera = EditorCamera(enabled=False, ignore_paused=True)
     panda3d_player_model = loader.loadModel(Filename.fromOsSpecific(mfl+"iron man.obj"))
-    player = FirstPersonController(model=panda3d_player_model, z=-10,color=color.gold, origin_y=0, speed=80, collider='box')
+    player = FirstPersonController(model=panda3d_player_model, z=-10,color=color.dark_gray, origin=(0,-2,1), speed=80, collider='box')
     player.collider = BoxCollider(player, Vec3(0, 1, 0), Vec3(1, 2, 1))
     player.cursor.scale = 0.005
     gun_model_path = mfl+"Railgun.3ds" 
@@ -178,7 +178,7 @@ class Bullet(Entity):
             position=position,
         )
         self.direction = direction.normalized()
-        self.speed = 100
+        self.speed = 10000
         self.max_distance = 30
         self.initial_distance = (self.position - player.position).length()
         Bullet.instances.append(self)  
