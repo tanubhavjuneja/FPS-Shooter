@@ -2,6 +2,7 @@ from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 from ursina.shaders import lit_with_shadows_shader
 from panda3d.core import Filename
+from math import atan2, degrees, sqrt
 import customtkinter as ctk
 import tkfilebrowser
 app = Ursina()
@@ -99,11 +100,7 @@ def false_start():
     player = FirstPersonController(model=panda3d_player_model, z=-10,color=color.dark_gray, origin=(0,-2,1), speed=80, collider='box')
     player.collider = BoxCollider(player, Vec3(0, 1, 0), Vec3(1, 2, 1))
     player.cursor.scale = 0.005
-    gun_model_path = mfl+"Railgun.3ds" 
-    panda3d_gun_model = loader.loadModel(Filename.fromOsSpecific(gun_model_path))
-    gun = Entity(model=panda3d_gun_model, parent=camera, position=(0.75, -0.9, 0.5), scale=(2, 2, 2), origin_z=-.1, on_cooldown=False)
-    gun.rotation+=Vec3(10,260,350)
-    gun.color = color.black
+    gun = Entity(model="cube", parent=camera, position=(0, -0.9, 0), scale=(2, 2, 2), origin_z=-.1, on_cooldown=False,visible=False)
     shootables_parent = Entity()
     mouse.traverse_target = shootables_parent
     player_health=200
@@ -147,13 +144,28 @@ def update():
         health_bar.update_value(player_health)
         update_zombies_killed_text()
 def shoot():
-    global no_of_shots,player_health,maxen,player_hp
+    global no_of_shots, player_health, maxen, player_hp
     if shooting and not gun.on_cooldown:
         gun.on_cooldown = True
-        from ursina.prefabs.ursfx import ursfx
-        ursfx([(0.0, 0.0), (0.1, 0.9), (0.15, 0.75), (0.3, 0.14), (0.6, 0.0)], volume=0.5, wave='noise', pitch=random.uniform(-13, -12), pitch_change=-12, speed=3.0)
-        invoke(setattr, gun, 'on_cooldown', False, delay=.15)
-        no_of_shots+=1
+        if mouse.world_point:
+            direction = (mouse.world_point - player.position).normalized()
+            position = player.position + direction * 0.5
+            beam_quad = Entity(
+                model='cube',
+                color=color.cyan,
+                scale=(2000, 0.2, 0.2),
+                position=position,
+                collider=None,
+                two_sided=True
+            )
+            beam_quad.look_at(mouse.world_point)
+            beam_quad.rotation_y += 90
+            def destroy_beam():
+                beam_quad.disable()
+                destroy(beam_quad)
+            invoke(destroy_beam, delay=0.2)
+        invoke(setattr, gun, 'on_cooldown', False, delay=0.15)
+        no_of_shots += 1
         if mouse.hovered_entity and hasattr(mouse.hovered_entity, 'hp'):
             mouse.hovered_entity.hp -= 10
             mouse.hovered_entity.blink(color.red)
@@ -163,8 +175,8 @@ def shoot():
                     spawn_enemies(2)
                 else:
                     spawn_enemies(1)
-                if Enemy.enemies_destroyed%5==0:
-                    player_health += hp_gain 
+                if Enemy.enemies_destroyed % 5 == 0:
+                    player_health += hp_gain
                     if player_health > player_hp:
                         player_health = player_hp
                     health_bar.value = player_health
