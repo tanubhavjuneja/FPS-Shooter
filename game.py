@@ -149,13 +149,13 @@ def update():
 def shoot():
     global no_of_shots, player_health, maxen, player_hp
     if shooting and not gun.on_cooldown:
-        shot_sound.play()
         gun.on_cooldown = True
         if mouse.world_point:
+            shot_sound.play()
             direction = (mouse.world_point - player.position).normalized()
             position = player.position + direction * 0.5
             beam_quad = Entity(
-                model='cube',
+                model='sphere',
                 color=color.cyan,
                 scale=(2000, 0.2, 0.2),
                 position=position,
