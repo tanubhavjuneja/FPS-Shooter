@@ -137,6 +137,8 @@ def spawn_enemies(number_of_enemies):
 def update():
     global shooting,player_health,game_started
     if game_started==True:
+        if player.y < -700:
+            respawn_player()
         if not shooting and held_keys['left mouse']:
             shooting = True
             shoot()
@@ -146,6 +148,8 @@ def update():
             quit_game()
         health_bar.update_value(player_health)
         update_zombies_killed_text()
+def respawn_player():
+    player.position = Vec3(0, -2, 0)
 def shoot():
     global no_of_shots, player_health, maxen, player_hp
     if shooting and not gun.on_cooldown:
