@@ -6,6 +6,18 @@ from math import atan2, degrees, sqrt
 import customtkinter as ctk
 import tkfilebrowser
 import pygame.mixer
+import logging
+from functools import wraps
+logging.basicConfig(filename='fps_game.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+def log_exceptions(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.exception("%s: %s", func.__name__, e)
+            raise
+    return wrapper
 pygame.mixer.init()
 app = Ursina()
 window.fullscreen = True
