@@ -26,7 +26,7 @@ game_started = False
 def read_file_location():
     global mfl
     try:
-        file=open('file_location.txt', 'r')
+        file=open('/assets/file_location.txt', 'r')
         mfl = file.read().strip()
         file.close()
         if not os.path.isfile(os.path.join(mfl, 'iron man.obj')) or not os.path.isfile(os.path.join(mfl, 'jet.obj')) or not os.path.isfile(os.path.join(mfl, 'repulsor.mp3')):
@@ -46,15 +46,15 @@ def get_file_location():
     main.mainloop()
 def select_file_location():
     global main
-    mfl = str(tkfilebrowser.askopendirname())+"/"
+    mfl = str(tkfilebrowser.askopendirname())+"/assets/"
     mfl = mfl.replace('\\', '/')
-    file=open('file_location.txt', 'w')
+    file=open('/assets/file_location.txt', 'w')
     file.write(mfl)
     file.close()
     main.destroy()
     read_file_location()
 def home():
-    map_model_path = mfl + "t3qqxibgic-CenterCitySciFi/Center city Sci-Fi/Center City Sci-Fi.obj"
+    map_model_path = mfl + "CenterCitySciFi/Center city Sci-Fi/Center City Sci-Fi.obj"
     panda3d_map_model = loader.loadModel(Filename.fromOsSpecific(map_model_path))
     map_entity = Entity(model=panda3d_map_model,position=(0,-700,0), scale=(1, 1, 1),collider="box") 
     map_width = 574.478
